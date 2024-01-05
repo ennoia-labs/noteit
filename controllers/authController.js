@@ -2,7 +2,7 @@ const { User } = require('@models/User');
 const passport = require('passport');
 const getSubObject = require('@utils/getSubObject');
 const { signToken, verifyRefreshToken } = require('@utils/jwtConfig');
-const { server } = require('@utils/getServer');
+const { feServer } = require('@utils/getServer');
 
 async function updateRefreshToken(_id) {
   try {
@@ -20,55 +20,39 @@ exports.root = async (req, res) => {
     refreshToken: null,
   };
 
-  if (!req.user) {
+  if (!req.isAuthenticated()) {
     res.status(401);
     return res.json(responsePrototype);
   }
 
+  res.status(200).json({ message: 'You are in!' });
+
   // user is Authenticated
 
-  try {
-    await verifyRefreshToken(req.user.refreshToken);
-    console.log('refresh token is not expired');
+  // console.log('sending user data...');
+  // const propertiesToReturn = [
+  //   '_id',
+  //   'email',
+  //   'firstName',
+  //   'lastName',
+  //   'faculty',
+  //   'semester',
+  //   'joinedOn',
+  //   'sessionCount',
+  //   'picture',
+  //   'savedNotes',
+  // ];
+  // const payload = getSubObject(req.user, propertiesToReturn);
+  // const signedToken = signToken({ payload });
+  // responsePrototype.isAuthenticated = true;
+  // responsePrototype.accessToken = signedToken;
 
-    responsePrototype.refreshToken = req.user.refreshToken;
-  } catch (error) {
-    console.log(error.message);
-    if (error.message === 'jwt expired') {
-      const updatedRefreshToken = updateRefreshToken(req.user._id);
-      if (typeof updateRefreshToken === 'object') {
-        res.status(500);
-        return res.end();
-      }
-      responsePrototype.refreshToken = updatedRefreshToken;
-    }
-  } finally {
-    console.log('sending user data...');
-    const propertiesToReturn = [
-      '_id',
-      'email',
-      'firstName',
-      'lastName',
-      'faculty',
-      'semester',
-      'joinedOn',
-      'sessionCount',
-      'picture',
-      'savedNotes',
-    ];
-    const payload = getSubObject(req.user, propertiesToReturn);
-    const signedToken = signToken({ payload });
-    responsePrototype.isAuthenticated = true;
-    responsePrototype.accessToken = signedToken;
-    responsePrototype.isAdmin = req.user.roles.includes('admin');
+  // if (!req.user.faculty || !req.user.semester) {
+  //   responsePrototype.isNewUser = true;
+  // }
 
-    if (!req.user.faculty || !req.user.semester) {
-      responsePrototype.isNewUser = true;
-    }
-
-    res.status(200);
-    res.json(responsePrototype);
-  }
+  // res.status(200);
+  // res.json(responsePrototype);
 };
 
 exports.google = passport.authenticate('google', {
@@ -77,7 +61,7 @@ exports.google = passport.authenticate('google', {
 
 exports.facebook = passport.authenticate('facebook');
 
-exports.callback = (req, res) => res.redirect(`${server}/`);
+exports.callback = (req, res) => res.redirect(feServer);
 
 exports.logout = (req, res) => {
   console.log('logging out');

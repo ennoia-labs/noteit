@@ -1,22 +1,31 @@
+const cors = require('cors');
 const express = require('express');
 const passport = require('passport');
 require('@controllers/passportController');
-const cookieSession = require('cookie-session');
-const path = require('path');
+const session = require('express-session');
+const corsOptions = require('./utils/corsConfig');
+
+require('dotenv').config();
 
 const app = express();
 
+app.use(cors(corsOptions));
 app.use(require('morgan')('combined'));
 app.use(require('helmet')());
 app.use(require('@utils/cspConfig'));
 
 app.use(
-  cookieSession({
-    name: 'userSession',
-    maxAge: 24 * 60 * 60 * 1000,
-    keys: [process.env.SESSION_SECRET],
+  session({
+    secret: process.env.SESSION_SECRET,
+    resave: true,
+    saveUninitialized: true,
+    cookie: {
+      secure: process.env.NODE_ENV === 'production', // Set to true in production for HTTPS
+      maxAge: 86400000, // 1 day
+    },
   })
 );
+
 app.use(passport.initialize());
 app.use(passport.session());
 
@@ -36,9 +45,13 @@ app.use('/users', usersRouter);
 app.use('/admin', adminRouter);
 app.use('/api', apiRouter);
 
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).sendFile(path.resolve(__dirname, './500.html'));
+app.use((err, req, res) => {
+  if (err) {
+    console.error(err.stack);
+    return res.status(500).end();
+  }
+
+  res.status(404);
 });
 
 module.exports = app;
