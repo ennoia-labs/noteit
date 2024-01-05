@@ -11,17 +11,9 @@ const {
   getAllContributors,
 } = require('@controllers/adminController');
 
-const cors = require('cors');
 const {
   mustHaveAdminToken,
 } = require('@controllers/middlewares/mustHaveToken');
-const corsOptions = require('./utils/corsConfig');
-
-router.use(cors(corsOptions));
-
-/**
- * Admin API
- */
 
 // users
 
