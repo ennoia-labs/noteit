@@ -1,23 +1,14 @@
 const { User } = require('@models/User');
 const passport = require('passport');
 const getSubObject = require('@utils/getSubObject');
-const { signToken, verifyRefreshToken } = require('@utils/jwtConfig');
+const { signToken } = require('@utils/jwtConfig');
 const { feServer } = require('@utils/getServer');
-
-async function updateRefreshToken(_id) {
-  try {
-    return await User.prototype.updateRefreshToken(_id);
-  } catch (error) {
-    return error;
-  }
-}
 
 exports.root = async (req, res) => {
   const responsePrototype = {
     isAuthenticated: false,
     isNewUser: false,
     accessToken: null,
-    refreshToken: null,
   };
 
   if (!req.isAuthenticated()) {
@@ -25,34 +16,36 @@ exports.root = async (req, res) => {
     return res.json(responsePrototype);
   }
 
-  res.status(200).json({ message: 'You are in!' });
+  try {
+    console.log('sending user data...');
+    const propertiesToReturn = [
+      '_id',
+      'email',
+      'firstName',
+      'lastName',
+      'faculty',
+      'semester',
+      'joinedOn',
+      'sessionCount',
+      'picture',
+      'savedNotes',
+    ];
+    const payload = getSubObject(req.user, propertiesToReturn);
 
-  // user is Authenticated
+    const signedToken = signToken({ payload });
+    responsePrototype.isAuthenticated = true;
+    responsePrototype.accessToken = signedToken;
 
-  // console.log('sending user data...');
-  // const propertiesToReturn = [
-  //   '_id',
-  //   'email',
-  //   'firstName',
-  //   'lastName',
-  //   'faculty',
-  //   'semester',
-  //   'joinedOn',
-  //   'sessionCount',
-  //   'picture',
-  //   'savedNotes',
-  // ];
-  // const payload = getSubObject(req.user, propertiesToReturn);
-  // const signedToken = signToken({ payload });
-  // responsePrototype.isAuthenticated = true;
-  // responsePrototype.accessToken = signedToken;
+    if (!req.user.faculty || !req.user.semester) {
+      responsePrototype.isNewUser = true;
+    }
 
-  // if (!req.user.faculty || !req.user.semester) {
-  //   responsePrototype.isNewUser = true;
-  // }
+    return res.status(200).json(responsePrototype);
+  } catch (error) {
+    console.log(error);
 
-  // res.status(200);
-  // res.json(responsePrototype);
+    return res.status(500);
+  }
 };
 
 exports.google = passport.authenticate('google', {
